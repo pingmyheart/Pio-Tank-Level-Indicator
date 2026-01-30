@@ -20,9 +20,13 @@ int retrieveDistance();
 
 void incrementMenu();
 
+void incrementShapeSelectionMenu();
+
 void incrementUpDown();
 
 void decrementMenu();
+
+void decrementShapeSelectionMenu();
 
 void decrementUpDown();
 
@@ -47,6 +51,7 @@ auto data = Data();
 auto machineState = MachineState::NORMAL_STATE;
 unsigned long lastMeasurementMillis;
 int menuItemSelected = 0;
+int shapeMenuItemSelected = 0;
 int upDownValue = 0;
 bool refreshRequired = true;
 
@@ -69,7 +74,7 @@ std::vector<std::function<void()> > menuActions = {
 };
 
 // Display
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+LiquidCrystal_I2C lcd(0x27, lcdCols, lcdRows);
 
 void setup() {
     // init pin
@@ -124,6 +129,7 @@ void loop() {
             decrementMenu();
         } else if (machineState == MachineState::CONFIRM_SELECTED_STATE) {
             incrementUpDown();
+            incrementShapeSelectionMenu();
         }
     }
     if (downLastButtonState == HIGH && currentDownButtonState == LOW) {
@@ -132,6 +138,7 @@ void loop() {
             incrementMenu();
         } else if (machineState == MachineState::CONFIRM_SELECTED_STATE) {
             decrementUpDown();
+            decrementShapeSelectionMenu();
         }
     }
     if (confirmLastButtonState == HIGH && currentConfirmButtonState == LOW) {
@@ -169,13 +176,13 @@ void loop() {
 
 // Machine States
 void normalMachineState() {
-    if (const unsigned long now = millis(); now - lastMeasurementMillis > 5 * 1000) {
+    if (const unsigned long now = millis(); now - lastMeasurementMillis > refreshIntervalInSeconds * 1000) {
         const int distance = retrieveDistance();
         const float waterLevel = static_cast<float>((data.maxHeight - distance) * data.longerSide * data.shorterSide) *
                                  data.multiplicationFactor / 1000;
         lcd.clear();
         lcd.setCursor(0, 0);
-        lcd.print("Misurazione");
+        lcd.print("MISURAZIONE");
         lcd.setCursor(0, 1);
         lcd.print("> " + String(static_cast<int>(waterLevel)) + " L");
         lastMeasurementMillis = now;
@@ -188,7 +195,7 @@ void menuMachineState() {
 
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Menu");
+    lcd.print("MENÙ");
     lcd.setCursor(0, 1);
     lcd.print(mainMenuItems[menuItemSelected]);
     Serial.println("Menu\n" + mainMenuItems[menuItemSelected]);
@@ -215,6 +222,15 @@ void incrementMenu() {
     }
 }
 
+void incrementShapeSelectionMenu() {
+    refreshRequired = true;
+    if (shapeMenuItemSelected + 1 > static_cast<int>(availableShapesItems.size()) - 1) {
+        shapeMenuItemSelected = 0;
+    } else {
+        shapeMenuItemSelected++;
+    }
+}
+
 void incrementUpDown() {
     upDownValue++;
     refreshRequired = true;
@@ -226,6 +242,15 @@ void decrementMenu() {
         menuItemSelected = static_cast<int>(mainMenuItems.size()) - 1;
     } else {
         menuItemSelected--;
+    }
+}
+
+void decrementShapeSelectionMenu() {
+    refreshRequired = true;
+    if (shapeMenuItemSelected - 1 < 0) {
+        shapeMenuItemSelected = static_cast<int>(availableShapesItems.size()) - 1;
+    } else {
+        shapeMenuItemSelected--;
     }
 }
 
@@ -241,32 +266,53 @@ void configureHeight() {
     lcd.setCursor(0, 0);
     lcd.print("Configura Altezza");
     lcd.setCursor(0, 1);
-    lcd.print(String(upDownValue) + " cm");
+    lcd.print("> " + String(upDownValue) + " cm");
     Serial.println("Configure Height\n" + String(upDownValue) + " cm");
     refreshRequired = false;
 }
 
 void configureShape() {
+    if (!refreshRequired) return;
+
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Configura Forma");
     lcd.setCursor(0, 1);
-    lcd.print(String(upDownValue) + " cm");
-    Serial.println("Configure Height\n" + String(upDownValue) + " cm");
+    lcd.print("> " + availableShapesItems[shapeMenuItemSelected].first);
+    Serial.println("Configure Shape\n" + availableShapesItems[shapeMenuItemSelected].first);
+    refreshRequired = false;
 }
 
 void configureLongerSide() {
+    if (!refreshRequired) return;
+
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Configura lato lungo");
+    lcd.setCursor(0, 1);
+    lcd.print("> " + String(upDownValue) + " cm");
+    Serial.println("Configure Longer Side\n" + String(upDownValue) + " cm");
+    refreshRequired = false;
 }
 
 void configureShorterSide() {
+    if (!refreshRequired) return;
+
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Configura lato corto");
+    lcd.setCursor(0, 1);
+    lcd.print("> " + String(upDownValue) + " cm");
+    Serial.println("Configure Shorter Side\n" + String(upDownValue) + " cm");
+    refreshRequired = false;
 }
 
 void testSensor() {
-    if (const unsigned long now = millis(); now - lastMeasurementMillis > 3 * 1000) {
+    if (const unsigned long now = millis(); now - lastMeasurementMillis > refreshIntervalInSeconds * 1000) {
         const int distance = retrieveDistance();
         lcd.clear();
         lcd.setCursor(0, 0);
-        lcd.print("Misurazione");
+        lcd.print("MISURAZIONE");
         lcd.setCursor(0, 1);
         lcd.print("> " + String(distance) + " cm");
         lastMeasurementMillis = now;

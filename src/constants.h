@@ -6,15 +6,20 @@
 #include <string>
 #include <cmath>
 
-// Button Pin
-constexpr int menuButtonPin = 0; // D3 on ESP
-constexpr int upButtonPin = 2; // D4 on ESP
-constexpr int downButtonPin = 14; // D5 on ESP
-constexpr int confirmButtonPin = 12; // D6 on ESP
+// Button
+constexpr unsigned int menuButtonPin = 0; // D3 on ESP
+constexpr unsigned int upButtonPin = 2; // D4 on ESP
+constexpr unsigned int downButtonPin = 14; // D5 on ESP
+constexpr unsigned int confirmButtonPin = 12; // D6 on ESP
 
-// Sensor Pin
-constexpr int trigPin = 13; // D7 on ESP
-constexpr int echoPin = 15; // D8 on ESP
+// Sensor
+constexpr unsigned int trigPin = 13; // D7 on ESP
+constexpr unsigned int echoPin = 15; // D8 on ESP
+constexpr unsigned int refreshIntervalInSeconds = 5;
+
+// LCD
+constexpr unsigned int lcdCols=16;
+constexpr unsigned int lcdRows=2;
 
 // Menu
 inline std::vector<String> mainMenuItems = {
