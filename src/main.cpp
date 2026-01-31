@@ -101,6 +101,15 @@ void setup() {
 
     // init
     lastMeasurementMillis = millis();
+
+    // hello world
+    lcd.setCursor(0, 0);
+    lcd.print("    LOADING");
+    Serial.println("    LOADING");
+    lcd.setCursor(0, 1);
+    lcd.print("AR CORP SOLUTIONS");
+    Serial.println("AR CORP SOLUTIONS");
+    delay(5000);
 }
 
 void loop() {
