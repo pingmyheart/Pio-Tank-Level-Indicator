@@ -3,9 +3,14 @@
 #include <LiquidCrystal_I2C.h>
 #include  <machine_state.h>
 #include <constants.h>
-#include "data.h"
+#include <data.h>
+#include <index.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
 
 #include <EEPROM.h>
+
+#include "secrets.h"
 
 // Prototypes
 void normalMachineState();
@@ -40,6 +45,10 @@ void configureLongerSide();
 
 void testSensor();
 
+void handleIndex();
+
+void configureNetwork();
+
 // ButtonState
 bool menuLastButtonState = HIGH;
 bool upLastButtonState = HIGH;
@@ -73,6 +82,20 @@ std::vector<std::function<void()> > menuActions = {
     }
 };
 
+// Server
+const char *apSsid = "ESP8266_AP";
+const char *apPassword = "12345678";
+
+IPAddress apLocalIp(10, 10, 10, 1);
+IPAddress apGateway(10, 10, 10, 1);
+IPAddress apSubnet(255, 255, 255, 0);
+
+IPAddress localIp(192, 168, 1, 100);
+IPAddress localGateway(192, 168, 1, 1);
+IPAddress localSubnet(255, 255, 255, 0);
+
+ESP8266WebServer server(80);
+
 // Display
 LiquidCrystal_I2C lcd(0x27, lcdCols, lcdRows);
 
@@ -102,6 +125,14 @@ void setup() {
     // init
     lastMeasurementMillis = millis();
 
+    // Start Access Point
+    configureNetwork();
+
+    // Setup web server
+    server.on("/", handleIndex);
+    server.begin();
+    Serial.println("Web server started");
+
     // hello world
     lcd.setCursor(0, 0);
     lcd.print("    LOADING");
@@ -113,6 +144,7 @@ void setup() {
 }
 
 void loop() {
+    server.handleClient();
     const bool currentMenuButtonState = digitalRead(menuButtonPin);
     const bool currentUpButtonState = digitalRead(upButtonPin);
     const bool currentDownButtonState = digitalRead(downButtonPin);
@@ -338,4 +370,43 @@ int retrieveDistance() {
     const unsigned long duration = pulseIn(echoPin, HIGH);
     const double distance = duration * .0343 / 2;
     return static_cast<int>(distance);
+}
+
+void handleIndex() {
+    auto html = String(indexHtml); // Copy header string to mutable String
+    const int distance = retrieveDistance();
+    const float waterLevel = static_cast<float>((data.maxHeight - distance) * data.longerSide * data.shorterSide) *
+                             data.multiplicationFactor / 1000;
+    html.replace("%water%", String(static_cast<int>(waterLevel)) + "L"); // Replace placeholder
+    server.send(200, "text/html", html);
+}
+
+void configureNetwork() {
+    constexpr int maxAttempts = 20;
+    // Try connecting to Wi-Fi
+    WiFi.mode(WIFI_STA);
+    WiFi.config(localIp, localGateway, localSubnet); // Assign static IP
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+    Serial.print("Connecting to Wi-Fi");
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < maxAttempts) {
+        delay(500);
+        Serial.print(".");
+        attempts++;
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("\nConnected to Wi-Fi!");
+        Serial.print("IP address: ");
+        Serial.println(WiFi.localIP());
+    } else {
+        // Fallback to AP mode
+        Serial.println("\nFailed to connect. Starting AP mode...");
+        WiFi.mode(WIFI_AP);
+        WiFi.softAPConfig(apLocalIp, apGateway, apSubnet);
+        WiFi.softAP(apSsid, apPassword);
+        Serial.print("AP IP: ");
+        Serial.println(WiFi.softAPIP());
+    }
 }
