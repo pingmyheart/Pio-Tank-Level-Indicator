@@ -6,3 +6,9 @@ struct Data {
     int shorterSide = 0;
     float multiplicationFactor = 1;
 };
+
+class DataSetter {
+public:
+    static void setIntValue(int& field, const int value);
+    static void setFloatValue(float& field, const float value);
+};

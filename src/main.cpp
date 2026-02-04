@@ -57,12 +57,30 @@ bool confirmLastButtonState = HIGH;
 
 // Data
 auto data = Data();
+DataSetter dataSetter;
 auto machineState = MachineState::NORMAL_STATE;
 unsigned long lastMeasurementMillis;
 int menuItemSelected = 0;
 int shapeMenuItemSelected = 0;
 int upDownValue = 0;
 bool refreshRequired = true;
+
+std::vector<std::function<void()> > menuIndexToDataReference = {
+    []() {
+        dataSetter.setIntValue(data.maxHeight, upDownValue);
+    },
+    []() {
+        dataSetter.setFloatValue(data.multiplicationFactor, availableShapesItems[upDownValue].second);
+    },
+    []() {
+        dataSetter.setIntValue(data.longerSide, upDownValue);
+    },
+    []() {
+        dataSetter.setIntValue(data.shorterSide, upDownValue);
+    },
+    []() {
+    }
+};
 
 std::vector<std::function<void()> > menuActions = {
     []() {
@@ -86,8 +104,8 @@ std::vector<std::function<void()> > menuActions = {
 const char *apSsid = "ESP8266_AP";
 const char *apPassword = "12345678";
 
-IPAddress apLocalIp(10, 10, 10, 1);
-IPAddress apGateway(10, 10, 10, 1);
+IPAddress apLocalIp(192, 168, 1, 100);
+IPAddress apGateway(192, 168, 1, 100);
 IPAddress apSubnet(255, 255, 255, 0);
 
 IPAddress localIp(192, 168, 1, 100);
@@ -186,10 +204,10 @@ void loop() {
         Serial.println("Confirm pressed");
         if (machineState == MachineState::MENU_SELECTED_STATE) {
             machineState = MachineState::CONFIRM_SELECTED_STATE;
+            upDownValue = 0;
         } else if (machineState == MachineState::CONFIRM_SELECTED_STATE) {
             machineState = MachineState::SAVE_DATA_STATE;
         }
-        upDownValue = 0;
         refreshRequired = true;
     }
 
@@ -249,9 +267,11 @@ void confirmMachineState() {
 
 void saveDataMachineState() {
     Serial.println("Saving state to eprom");
-    // read menu item index to match corresponding data
-    // save data to eprom
+    menuIndexToDataReference[menuItemSelected]();
+    EEPROM.put(0, data);
+    EEPROM.commit();
     machineState = MachineState::MENU_SELECTED_STATE;
+    upDownValue = 0;
 }
 
 void incrementMenu() {
