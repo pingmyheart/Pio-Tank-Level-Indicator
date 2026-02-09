@@ -70,7 +70,7 @@ std::vector<std::function<void()> > menuIndexToDataReference = {
         dataSetter.setIntValue(data.maxHeight, upDownValue);
     },
     []() {
-        dataSetter.setFloatValue(data.multiplicationFactor, availableShapesItems[upDownValue].second);
+        dataSetter.setFloatValue(data.multiplicationFactor, availableShapesItems[shapeMenuItemSelected].second);
     },
     []() {
         dataSetter.setIntValue(data.longerSide, upDownValue);
@@ -118,6 +118,9 @@ ESP8266WebServer server(80);
 LiquidCrystal_I2C lcd(0x27, lcdCols, lcdRows);
 
 void setup() {
+    Wire.begin(D2, D1); // SDA, SCL — adjust to your wiring
+    // Wire.setClock(100000); // slow I2C = more stable
+
     // init pin
     pinMode(menuButtonPin, INPUT_PULLUP);
     pinMode(upButtonPin, INPUT_PULLUP);
@@ -254,7 +257,7 @@ void menuMachineState() {
 
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("MENÙ");
+    lcd.print("MENU'");
     lcd.setCursor(0, 1);
     lcd.print(mainMenuItems[menuItemSelected]);
     Serial.println("Menu\n" + mainMenuItems[menuItemSelected]);
